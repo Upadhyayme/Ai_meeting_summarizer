@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <title>AI Meeting Summarizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #f9f9f9;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #a18cd1, #fbc2eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    textarea, input[type="text"], input[type="email"], input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    textarea::placeholder, input::placeholder {
+      color: #ccc;
+    }
+
+    button {
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .primary {
+      background: linear-gradient(90deg, #a18cd1, #fbc2eb);
+      color: #111;
+    }
+
+    .primary:hover {
+      background: linear-gradient(90deg, #fbc2eb, #a18cd1);
+      transform: translateY(-2px);
+    }
+
+    .muted {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .muted:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .row > * {
+      flex: 1 1 300px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #bbb;
+    }
+
+    .mono {
+      font-family: 'Courier New', monospace;
+    }
+
+    label {
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+  </style>
+</head>
+<!-- <head>
+  <meta charset="UTF-8" />
+  <title>AI Meeting Summarizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; max-width: 900px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    textarea, input[type="text"], input[type="email"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+    button { padding: 10px 16px; border-radius: 10px; border: 0; cursor: pointer; }
+    .primary { background: #111827; color: #fff; }
+    .muted { background: #f3f4f6; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 300px; }
+    .small { font-size: 12px; color: #666; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+</head> -->
+<body>
+  <h1>AI Meeting Notes Summarizer & Sharer</h1>
+  <p class="small">Upload a .txt transcript or paste text. Add a custom instruction. Generate, edit, and email.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label><strong>Upload .txt Transcript</strong></label><br />
+        <input id="fileInput" type="file" accept=".txt" />
+      </div>
+      <div>
+        <label><strong>Custom Instruction / Prompt</strong></label>
+        <input id="prompt" type="text" placeholder="e.g., Summarize in concise bullet points and list only action items." />
+      </div>
+    </div>
+    <p class="small">Or paste transcript directly below:</p>
+    <textarea id="transcript" rows="10" placeholder="Paste transcript here..."></textarea>
+    <div style="margin-top: 10px;">
+      <button class="primary" id="btnSummarize">Generate Summary</button>
+      <button class="muted" id="btnClear">Clear</button>
+      <span id="status" class="small"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label><strong>Summary (Editable)</strong></label>
+    <textarea id="summary" rows="12" class="mono" placeholder="Your summary will appear here and is fully editable..."></textarea>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label><strong>Recipient Email</strong></label>
+        <input id="email" type="email" placeholder="recipient@example.com" />
+      </div>
+      <div>
+        <label><strong>Email Subject</strong></label>
+        <input id="subject" type="text" value="Meeting Summary" />
+      </div>
+    </div>
+    <div style="margin-top: 10px;">
+      <button class="primary" id="btnShare">Share Summary via Email</button>
+      <span id="shareStatus" class="small"></span>
+    </div>
+  </div>
+
+  <script>
+    // Set this to your deployed backend URL (Render) when live:
+    // Example: const BACKEND = "https://ai-meeting-summarizer-backend.onrender.com";
+   const BACKEND = "http://127.0.0.1:8000";
+   
+    const el = (id) => document.getElementById(id);
+    const fileInput = el("fileInput");
+    const transcript = el("transcript");
+    const prompt = el("prompt");
+    const status = el("status");
+    const summary = el("summary");
+    const email = el("email");
+    const subject = el("subject");
+    const shareStatus = el("shareStatus");
+
+    fileInput.addEventListener("change", async () => {
+      const f = fileInput.files?.[0];
+      if (!f) return;
+      const form = new FormData();
+      form.append("file", f);
+      status.textContent = "Reading file...";
+      try {
+        const res = await fetch(`${BACKEND}/upload-file`, { method: "POST", body: form });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        transcript.value = data.content || "";
+        status.textContent = `Loaded: ${data.filename}`;
+      } catch (e) {
+        status.textContent = "File read failed.";
+        alert(e);
+      }
+    });
+
+    el("btnClear").addEventListener("click", () => {
+      transcript.value = "";
+      summary.value = "";
+      prompt.value = "";
+      status.textContent = "";
+      shareStatus.textContent = "";
+      fileInput.value = "";
+    });
+
+    el("btnSummarize").addEventListener("click", async () => {
+      const tx = transcript.value.trim();
+      if (!tx) {
+        alert("Please upload or paste a transcript.");
+        return;
+      }
+      status.textContent = "Summarizing...";
+      try {
+        const res = await fetch(`${BACKEND}/summarize`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcript: tx,
+            prompt: prompt.value || ""
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+        summary.value = data.summary;
+        status.textContent = "Done.";
+      } catch (e) {
+        status.textContent = "Failed.";
+        alert(e);
+      }
+    });
+
+    el("btnShare").addEventListener("click", async () => {
+      const s = summary.value.trim();
+      const to = email.value.trim();
+      if (!s) return alert("No summary to send.");
+      if (!to) return alert("Enter recipient email.");
+
+      shareStatus.textContent = "Sending...";
+      try {
+        const form = new FormData();
+        form.append("email", to);
+        form.append("subject", subject.value || "Meeting Summary");
+        form.append("summary", s);
+
+        const res = await fetch(`${BACKEND}/share`, { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+        shareStatus.textContent = "Email sent ✅";
+      } catch (e) {
+        shareStatus.textContent = "Failed to send.";
+        alert(e);
+      }
+    });
+  </script>
+</body>
+</html>
